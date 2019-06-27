@@ -1,0 +1,88 @@
+hostname OVADE-INET-RTR1-GLO
+!
+
+
+ip name-server 4.2.2.2 192.168.1.1 206.67.222.222
+
+!
+spanning-tree extend system-id
+!
+username admin password 7 095C4F1A0A1218000F
+
+!
+
+interface GigabitEthernet0/0/0
+ description ***ISP PORT***
+ ip address 41.203.77.66 255.255.255.248
+ ip nat outside
+ negotiation auto
+!
+interface GigabitEthernet0/0/1
+ no ip address
+ ip nat inside
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet0/0/2
+ ip address 172.20.0.2 255.255.255.252
+ ip nat inside
+ negotiation auto
+!
+interface GigabitEthernet0/1/0
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet0/1/1
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet0/2/0
+!
+interface GigabitEthernet0/2/1
+!
+interface GigabitEthernet0/2/2
+!
+interface GigabitEthernet0/2/3
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+ip nat inside source list 100 interface GigabitEthernet0/0/0 overload
+ip forward-protocol nd
+no ip http server
+no ip http secure-server
+ip tftp source-interface GigabitEthernet0
+ip route 0.0.0.0 0.0.0.0 41.203.77.65
+ip route 172.20.0.0 255.255.0.0 172.20.0.1
+!
+!
+access-list 100 permit ip 172.20.0.0 0.0.255.255 any
+!
+!
+!
+control-plane
+!
+!
+line con 0
+ password 
+ logging synchronous
+ login
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ password
+ logging synchronous
+ login
+!
+!
+end

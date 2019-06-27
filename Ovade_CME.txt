@@ -1,0 +1,150 @@
+
+
+no ip domain lookup
+
+subscriber templating
+!
+
+voice service voip
+ allow-connections h323 to h323
+ allow-connections h323 to sip
+ allow-connections sip to h323
+ supplementary-service h450.12
+ fax protocol t38 version 0 ls-redundancy 0 hs-redundancy 0 fallback none
+ h323
+ sip
+!
+voice class codec 1
+ codec preference 1 g711ulaw
+!
+voice class h323 1
+!
+!
+voice-card 0/4
+ dsp services dspfarm
+ no watchdog
+!
+
+interface GigabitEthernet0/0/0
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet0/0/0.2
+!
+interface GigabitEthernet0/0/1
+ description **RADIO LINK TO BENIN**
+ ip address 192.168.100.1 255.255.255.0
+ negotiation auto
+!
+interface GigabitEthernet0/0/2
+ ip address 172.20.7.253 255.255.255.0
+ negotiation auto
+ h323-gateway voip interface
+ h323-gateway voip bind srcaddr 172.20.7.253
+!
+interface Service-Engine0/4/0
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+!
+router eigrp 4
+ network 192.168.100.0 0.0.0.3
+!
+ip forward-protocol nd
+no ip http server
+no ip http secure-server
+ip tftp source-interface GigabitEthernet0
+ip route 0.0.0.0 0.0.0.0 172.20.7.1
+!
+!
+!
+!
+!
+control-plane
+!
+ !
+ !
+ !
+ !
+!
+mgcp behavior rsip-range tgcp-only
+mgcp behavior comedia-role none
+mgcp behavior comedia-check-media-src disable
+mgcp behavior comedia-sdp-force disable
+!
+mgcp profile default
+!
+sccp local GigabitEthernet0/0/2
+sccp ccm 192.168.20.66 identifier 2 priority 2 version 5.0.1
+sccp ccm 192.168.20.67 identifier 1 priority 1 version 5.0.1
+sccp
+!
+sccp ccm group 1
+ associate ccm 1 priority 1
+ associate ccm 2 priority 2
+ associate profile 2 register gasconf
+ associate profile 1 register gasxcoder
+!
+!
+ccm-manager fallback-mgcp
+!
+telephony-service
+ srst mode auto-provision none
+ srst dn line-mode dual
+ max-ephones 110
+ max-dn 288
+ ip source-address 172.20.7.253 port 2000
+ system message Gas Plant Call Manager
+ date-format dd-mm-yy
+ max-conferences 8 gain -6
+ transfer-system full-consult
+ create cnf-files version-stamp Jan 01 2002 00:00:00
+!
+!
+dspfarm profile 1 transcode
+ codec g711ulaw
+ codec g711alaw
+ codec g729ar8
+ codec g729abr8
+ codec g729r8
+ maximum sessions 8
+ associate application SCCP
+!
+dspfarm profile 2 conference
+ codec g729br8
+ codec g729r8
+ codec g729abr8
+ codec g729ar8
+ codec g711alaw
+ codec g711ulaw
+ maximum sessions 2
+ associate application SCCP
+!
+!
+gateway
+ timer receive-rtp 1200
+!
+!
+line con 0
+ password 
+ logging synchronous
+ login
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ password 
+ logging synchronous
+ login
+!
+!
+end

@@ -1,0 +1,370 @@
+
+!
+!
+!
+vrf definition mgmtVrf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+
+no aaa new-model
+!
+switch virtual domain 100
+ switch mode virtual
+ switch 1 priority 200
+ mac-address use-virtual
+!
+!
+!
+!
+!
+!
+!
+!
+ip name-server 4.2.2.2
+ip name-server 192.168.1.1
+ip name-server 206.67.222.222
+ip dhcp excluded-address 172.20.12.1 172.20.12.20
+ip dhcp excluded-address 172.20.12.240 172.20.12.253
+!
+ip dhcp pool RESIDENTIAL
+ network 172.20.12.0 255.255.255.0
+ default-router 172.20.12.1
+ option 43 hex f104.ac14.0503
+ dns-server 4.2.2.2 206.67.222.222 192.168.1.1
+ option 150 ip 192.168.20.67 192.168.20.66 172.20.7.253
+!
+ip dhcp pool LPG
+ network 172.20.16.0 255.255.255.0
+ default-router 172.20.16.1
+ option 43 hex f104.ac14.0503
+ dns-server 4.2.2.2 206.67.222.222 192.168.1.1
+ option 150 ip 192.168.20.67 192.168.20.66 172.20.7.253
+!
+!
+vtp mode transparent
+!
+power redundancy-mode redundant
+!
+mac access-list extended VSL-BPDU
+ permit any 0180.c200.0000 0000.0000.0003
+mac access-list extended VSL-CDP
+ permit any host 0100.0ccc.cccc
+mac access-list extended VSL-DOT1x
+ permit any any 0x888E
+mac access-list extended VSL-GARP
+ permit any host 0180.c200.0020
+mac access-list extended VSL-LLDP
+ permit any host 0180.c200.000e
+mac access-list extended VSL-MGMT
+ permit any 0022.bdcd.d200 0000.0000.00ff
+ permit 0022.bdcd.d200 0000.0000.00ff any
+mac access-list extended VSL-SSTP
+ permit any host 0100.0ccc.cccd
+!
+spanning-tree mode rapid-pvst
+spanning-tree extend system-id
+!
+redundancy
+ mode sso
+!
+vlan internal allocation policy ascending
+!
+vlan 20
+ name VOICE
+!
+vlan 200
+!
+vlan 700
+ name RESIDENTIAL
+!
+vlan 902
+ name LPG
+!
+!
+class-map match-any VSL-MGMT-PACKETS
+ match access-group name VSL-MGMT
+class-map match-any VSL-DATA-PACKETS
+ match any
+class-map match-any VSL-L2-CONTROL-PACKETS
+ match access-group name VSL-DOT1x
+ match access-group name VSL-BPDU
+ match access-group name VSL-CDP
+ match access-group name VSL-LLDP
+ match access-group name VSL-SSTP
+ match access-group name VSL-GARP
+class-map match-any VSL-L3-CONTROL-PACKETS
+ match access-group name VSL-IPV4-ROUTING
+ match access-group name VSL-BFD
+ match access-group name VSL-DHCP-CLIENT-TO-SERVER
+ match access-group name VSL-DHCP-SERVER-TO-CLIENT
+ match access-group name VSL-DHCP-SERVER-TO-SERVER
+ match access-group name VSL-IPV6-ROUTING
+class-map match-any VSL-MULTIMEDIA-TRAFFIC
+ match dscp af41
+ match dscp af42
+ match dscp af43
+ match dscp af31
+ match dscp af32
+ match dscp af33
+ match dscp af21
+ match dscp af22
+ match dscp af23
+class-map match-any VSL-VOICE-VIDEO-TRAFFIC
+ match dscp ef
+ match dscp cs4
+ match dscp cs5
+class-map match-any VSL-SIGNALING-NETWORK-MGMT
+ match dscp cs2
+ match dscp cs3
+ match dscp cs6
+ match dscp cs7
+!
+policy-map VSL-Queuing-Policy
+ class VSL-MGMT-PACKETS
+  bandwidth percent 5
+ class VSL-L2-CONTROL-PACKETS
+  bandwidth percent 5
+ class VSL-L3-CONTROL-PACKETS
+  bandwidth percent 5
+ class VSL-VOICE-VIDEO-TRAFFIC
+  bandwidth percent 30
+ class VSL-SIGNALING-NETWORK-MGMT
+  bandwidth percent 10
+ class VSL-MULTIMEDIA-TRAFFIC
+  bandwidth percent 20
+ class VSL-DATA-PACKETS
+  bandwidth percent 20
+ class class-default
+  bandwidth percent 5
+!
+!
+!
+!
+!
+!
+!
+interface Port-channel10
+ switchport
+ switchport mode trunk
+ switchport nonegotiate
+ switch virtual link 1
+!
+interface Port-channel20
+ switchport
+ switchport mode trunk
+ switchport nonegotiate
+ switch virtual link 2
+!
+interface FastEthernet1
+ vrf forwarding mgmtVrf
+ no ip address
+ speed auto
+ duplex auto
+!
+interface TenGigabitEthernet1/1/1
+ description lINK TO OVADE-INET-RTR1-GLO
+ no switchport
+ ip address 172.20.0.1 255.255.255.252
+!
+interface TenGigabitEthernet1/1/2
+ description lINK TO OVADE-DIST-1
+ no switchport
+ ip address 172.20.2.1 255.255.255.0
+!
+interface TenGigabitEthernet1/1/3
+ description Link-to-CUME
+ no switchport
+ no ip address
+ shutdown
+!
+interface TenGigabitEthernet1/1/4
+ description Link-to-Residential
+ switchport trunk native vlan 700
+ switchport mode trunk
+!
+interface TenGigabitEthernet1/1/5
+!
+interface TenGigabitEthernet1/1/6
+!
+interface TenGigabitEthernet1/1/7
+!
+interface TenGigabitEthernet1/1/8
+!
+interface TenGigabitEthernet1/1/9
+!
+interface TenGigabitEthernet1/1/10
+!
+interface TenGigabitEthernet1/1/11
+!
+interface TenGigabitEthernet1/1/12
+!
+interface TenGigabitEthernet1/1/13
+!
+interface TenGigabitEthernet1/1/14
+!
+interface TenGigabitEthernet1/1/15
+ switchport mode trunk
+ switchport nonegotiate
+ no lldp transmit
+ no lldp receive
+ channel-group 10 mode on
+ service-policy output VSL-Queuing-Policy
+!
+interface TenGigabitEthernet1/1/16
+ switchport mode trunk
+ switchport nonegotiate
+ no lldp transmit
+ no lldp receive
+ channel-group 10 mode on
+ service-policy output VSL-Queuing-Policy
+!
+interface TenGigabitEthernet2/1/1
+ description lINK TO OVADE-INET-RTR2-NETCOM
+ no switchport
+ ip address 172.20.1.1 255.255.255.252
+!
+interface TenGigabitEthernet2/1/2
+ description lINK TO OVADE-DIST-2
+ no switchport
+ ip address 172.20.3.1 255.255.255.0
+!
+interface TenGigabitEthernet2/1/3
+ description Link-to-LPG
+ switchport trunk native vlan 902
+ switchport mode trunk
+!
+interface TenGigabitEthernet2/1/4
+ description link-to-OvadeCME
+ switchport trunk native vlan 200
+ switchport mode trunk
+!
+interface TenGigabitEthernet2/1/5
+!
+interface TenGigabitEthernet2/1/6
+!
+interface TenGigabitEthernet2/1/7
+!
+interface TenGigabitEthernet2/1/8
+!
+interface TenGigabitEthernet2/1/9
+!
+interface TenGigabitEthernet2/1/10
+!
+interface TenGigabitEthernet2/1/11
+!
+interface TenGigabitEthernet2/1/12
+!
+interface TenGigabitEthernet2/1/13
+!
+interface TenGigabitEthernet2/1/14
+!
+interface TenGigabitEthernet2/1/15
+ switchport mode trunk
+ switchport nonegotiate
+ no lldp transmit
+ no lldp receive
+ channel-group 20 mode on
+ service-policy output VSL-Queuing-Policy
+!
+interface TenGigabitEthernet2/1/16
+ switchport mode trunk
+ switchport nonegotiate
+ no lldp transmit
+ no lldp receive
+ channel-group 20 mode on
+ service-policy output VSL-Queuing-Policy
+!
+interface Vlan1
+ no ip address
+!
+interface Vlan200
+ no ip address
+!
+interface Vlan700
+ ip address 172.20.12.1 255.255.255.0
+!
+interface Vlan902
+ ip address 172.20.16.1 255.255.255.0
+!
+!
+router eigrp OVADE-NETWORK
+ !
+ address-family ipv4 unicast autonomous-system 1
+  !
+  topology base
+   redistribute static
+  exit-af-topology
+  network 172.20.2.0 0.0.0.3
+  network 172.20.3.0 0.0.0.3
+  network 172.20.7.0 0.0.0.255
+  network 172.20.12.0 0.0.0.255
+  network 172.20.16.0 0.0.0.255
+  eigrp stub connected summary
+ exit-address-family
+!
+!
+router eigrp 4
+ network 172.20.2.0 0.0.0.3
+ network 172.20.3.0 0.0.0.3
+ network 172.20.6.0 0.0.0.255
+ network 172.20.7.0 0.0.0.255
+ network 172.20.12.0 0.0.0.255
+ network 172.20.16.0 0.0.0.255
+ network 192.168.20.0
+ network 192.168.100.0 0.0.0.3
+ eigrp stub connected summary
+!
+ip forward-protocol nd
+no ip http server
+ip route 0.0.0.0 0.0.0.0 172.20.0.2
+ip route 0.0.0.0 0.0.0.0 172.20.1.2 5
+ip route 172.20.1.253 255.255.255.255 192.168.15.1
+ip route 172.20.4.0 255.255.255.0 172.20.7.1
+ip route 172.20.21.0 255.255.255.0 172.20.7.1
+ip route 192.168.20.0 255.255.255.0 172.20.6.1
+!
+ip access-list extended VSL-BFD
+ permit udp any any eq 3784
+ip access-list extended VSL-DHCP-CLIENT-TO-SERVER
+ permit udp any eq bootpc any eq bootps
+ip access-list extended VSL-DHCP-SERVER-TO-CLIENT
+ permit udp any eq bootps any eq bootpc
+ip access-list extended VSL-DHCP-SERVER-TO-SERVER
+ permit udp any eq bootps any eq bootps
+ip access-list extended VSL-IPV4-ROUTING
+ permit ip any 224.0.0.0 0.0.0.255
+!
+!
+!
+ipv6 access-list VSL-IPV6-ROUTING
+ permit ipv6 any FF02::/124
+!
+!
+line con 0
+ password 
+ logging synchronous
+ login
+ stopbits 1
+line vty 0 4
+ password 
+ logging synchronous
+ login
+!
+!
+module provision switch 1
+ chassis-type 70 base-mac D4C9.3CBD.E9C0
+ slot 1 slot-type 401 base-mac D4C9.3CBD.E9C0
+ !
+module provision switch 2
+ chassis-type 70 base-mac D4C9.3CBD.F440
+ slot 1 slot-type 401 base-mac D4C9.3CBD.F440
+
+!
+
+ !
+end
